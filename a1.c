@@ -139,7 +139,7 @@ void collisionResponse() {
 	}
 	
 	// Colision with the sides of the map
-	// Taking .5 values to be able to go at the midle of the cubes on the sides
+	// Taking .5 values to be able to go at the middle of the cubes on the sides
 	if(*pos_x < -99.5) 	{*pos_x = -99.5;}
 	if(*pos_x > -0.5) 	{*pos_x = -0.5;}
 	if(*pos_z < -99.5) 	{*pos_z = -99.5;}
@@ -350,6 +350,9 @@ float noise;
       createPlayer(0, 52.0, 27.0, 52.0, 0.0);
 
    } else {
+   		// Deactivate flying (can be activate by pressing 'f' key)
+   		flycontrol = 0;
+   
 		// Building the world with perlin noise (see perlin.c)
 		for(i=0; i<WORLDX; i++) {
 			for(j=0; j<WORLDZ; j++) {
