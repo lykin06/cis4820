@@ -139,7 +139,7 @@ void collisionResponse() {
 	}
 	
 	// Colision with the sides of the map
-	// Taking 0.5 to be able to got at the midle of the last cube
+	// Taking .5 values to be able to go at the midle of the cubes on the sides
 	if(*pos_x < -99.5) 	{*pos_x = -99.5;}
 	if(*pos_x > -0.5) 	{*pos_x = -0.5;}
 	if(*pos_z < -99.5) 	{*pos_z = -99.5;}
