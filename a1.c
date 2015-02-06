@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <time.h>
+#include <sys/time.h>
 
 #include "perlin.h"
 #include "graphics.h"
@@ -68,6 +70,8 @@ extern void tree(float, float, float, float, float, float, int);
 /********* end of extern variable declarations **************/
 
 int update_clouds = 1;
+double time_sec;
+struct timeval tv;
 
 /************** end variable declarations **************/
 
@@ -167,6 +171,7 @@ void update() {
 	int i, j, x, y, z;
 	float *pos_x, *pos_y, *pos_z;
 	int clouds[WORLDZ];
+	double sec, usec;   		
 
 	/* sample animation for the test world, don't remove this code */
 	/* -demo of animating mobs */
@@ -218,6 +223,36 @@ void update() {
       if (mob1ry > 360.0) mob1ry -= 360.0;
     /* end testworld animation */
    } else {
+   		// time
+   		gettimeofday(&tv,NULL);
+   		sec = (double) tv.tv_sec;
+   		usec = (double) tv.tv_usec / 1000000.0;
+   		if(sec > time_sec) {
+   			// Save clouds
+   			for(i=0; i < WORLDZ; i++) {
+				clouds[i] = 0;
+			}
+			
+			// Update the position of the clouds
+			for(i = 0; i < WORLDX - 1; ++i) {
+				for(j = 0; j < WORLDZ; ++j) {
+					if (i == 0) {
+						// Save the clouds before overwriting
+						clouds[j] = world[0][WORLDY - 1][j];
+					}
+					world[i][WORLDY - 1][j] = world[i + 1][WORLDY - 1][j];
+				}
+			}
+			
+			// Rewrite the clouds to do a cycle
+			for(i=0; i < WORLDZ; i++) {
+				world[WORLDX - 1][WORLDY - 1][i] = clouds[i];
+			}
+			
+			// Update time_sec
+   			time_sec = sec;
+   		}
+   
 		pos_x = malloc(sizeof(float));
 		pos_y = malloc(sizeof(float));
 		pos_z = malloc(sizeof(float));
@@ -236,34 +271,6 @@ void update() {
 					setViewPosition(*pos_x, *pos_y + 0.1, *pos_z);
 				}
 			}
-		}
-		
-		// Clouds
-		if(update_clouds == 30) {
-			for(i=0; i<WORLDZ; i++)
-				clouds[i] = 0;
-			
-			// Update the position of the clouds
-			for(i = 0; i < 99; ++i) {
-				for(j = 0; j < 100; ++j) {
-					if (i == 0) {
-						// Save the clouds before overwriting
-						clouds[j] = world[0][49][j];
-					}
-					world[i][49][j] = world[i + 1][49][j];
-				}
-			}
-			
-			// Rewrite the clouds to do a cycle
-			for(i=0; i<WORLDZ; i++) {
-				world[99][49][i] = clouds[i];
-			}
-			
-			// Reset the counter
-			update_clouds = 1;
-		} else {
-			// Increase the counter
-			++update_clouds;
 		}
 		
 		free(pos_x);
@@ -352,6 +359,10 @@ float noise;
    } else {
    		// Deactivate flying (can be activate by pressing 'f' key)
    		flycontrol = 0;
+   		
+   		// Initialize time value
+   		gettimeofday(&tv,NULL);
+   		time_sec = (double) tv.tv_sec;
    
 		// Building the world with perlin noise (see perlin.c)
 		for(i=0; i<WORLDX; i++) {
