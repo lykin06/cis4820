@@ -93,61 +93,62 @@ void collisionResponse() {
 	getOldViewPosition(old_x, old_y, old_z);
 	getViewPosition(pos_x, pos_y, pos_z);
 
+	// Rounded position
+	x = ((int) *pos_x) * (-1);
+	y = ((int) *pos_y) * (-1);
+	z = ((int) *pos_z) * (-1);
+		
+	printf("Position x=%d, y=%d, z=%d\n", x, y, z);
+
 	// No need to affects gravity nor collsions with blocks on the
 	// player if he is on the side of the map or flying
 	if(flycontrol == 0) {
-		// Rounded position
-		x = ((int) *pos_x) * (-1);
-		y = ((int) *pos_y) * (-1);
-		z = ((int) *pos_z) * (-1);
-	
 		// Collision
-		if(world[x][y][z] > 0) {	
+		if(world[x][y][z] > 0) {
 			// Jump one block
 			if(world[x][y+1][z] == 0) {
-				setViewPosition(*pos_x, *pos_y - 1.0, *pos_z);
+				*pos_y -= 1.0;
 			} else {
 				// Reverse the movement	
-				setViewPosition(*old_x, *old_y, *old_z);
+				*pos_x = *old_x;
+				*pos_y = *old_y;
+				*pos_z = *old_z;
 			}
 			
-			// Leave function
+			setViewPosition(*pos_x, *pos_y, *pos_z);
+
 			free(pos_x);
 			free(pos_y);
 			free(pos_z);
 			free(old_x);
 			free(old_y);
 			free(old_z);
+			
 			return;
 		}
 	
 		// Gravity
 		if(*pos_y < -0.5) {
 			if((world[x][y - 1][z] == 0) || (world[x][y - 1][z] == 5)) {
-				setViewPosition(*pos_x, *pos_y + 0.1, *pos_z);
+				*pos_y += 0.1;
 			} else {
 				// Fix the y view point position
-				setViewPosition(*pos_x, (-1) * y - 0.5, *pos_z);
+				*pos_y = (-1) * y - 0.5;
 			}
-			
-			// Leave function
-			free(pos_x);
-			free(pos_y);
-			free(pos_z);
-			free(old_x);
-			free(old_y);
-			free(old_z);
-			return;
 		}
 	}
 	
+	printf("Pos x=%f, y=%f, z=%f\n", *pos_x, *pos_y,*pos_z);
 	// Colision with the sides of the map
-	if(*pos_x < -99.0) {setViewPosition(-98.9, *pos_y, *pos_z);}
-	if(*pos_x > 0.0) {setViewPosition(0.0, *pos_y, *pos_z);}
-	if(*pos_z < -99.0) {setViewPosition(*pos_x, *pos_y, -98.9);}
-	if(*pos_z > 0.0) {setViewPosition(*pos_x, *pos_y, 0.0);}
-	if(*pos_y < -49.0) {setViewPosition(*pos_x, -48.9, *pos_z);}
-	if(*pos_y > 0.0) {setViewPosition(*pos_x, 0.0, *pos_z);}
+	if(x > 99) {*pos_x = -99.5;}
+	if(x < 0) {*pos_x = -0.5;}
+	if(z > 99) {*pos_z = -99.5;}
+	if(z < 0) {*pos_z = -0.5;}
+	if(y > 49) {*pos_y = -49.5;}
+	if(y < 0) {*pos_y = -0.5;}
+
+	printf("Pos x=%f, y=%f, z=%f\n", *pos_x, *pos_y, *pos_z);
+	setViewPosition(*pos_x, *pos_y, *pos_z);
 
 	free(pos_x);
 	free(pos_y);
