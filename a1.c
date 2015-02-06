@@ -138,16 +138,15 @@ void collisionResponse() {
 		}
 	}
 	
-	printf("Pos x=%f, y=%f, z=%f\n", *pos_x, *pos_y,*pos_z);
 	// Colision with the sides of the map
-	if(x > 99) {*pos_x = -99.5;}
-	if(x < 0) {*pos_x = -0.5;}
-	if(z > 99) {*pos_z = -99.5;}
-	if(z < 0) {*pos_z = -0.5;}
-	if(y > 49) {*pos_y = -49.5;}
-	if(y < 0) {*pos_y = -0.5;}
+	// Taking 0.5 to be able to got at the midle of the last cube
+	if(*pos_x < -99.5) 	{*pos_x = -99.5;}
+	if(*pos_x > -0.5) 	{*pos_x = -0.5;}
+	if(*pos_z < -99.5) 	{*pos_z = -99.5;}
+	if(*pos_z > -0.5)	{*pos_z = -0.5;}
+	if(*pos_y < -49.5) 	{*pos_y = -49.5;}
+	if(*pos_y > -0.5) 	{*pos_y = -0.5;}
 
-	printf("Pos x=%f, y=%f, z=%f\n", *pos_x, *pos_y, *pos_z);
 	setViewPosition(*pos_x, *pos_y, *pos_z);
 
 	free(pos_x);
