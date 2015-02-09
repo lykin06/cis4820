@@ -85,7 +85,6 @@ double start_x, start_y;
 /************** end variable declarations **************/
 
 void launchProjectile(float player_x, float player_y, float player_z, int player_rot) {
-	int i;
 	float val = player_rot * (PI / 180.0);
 	float val2 = angle * (PI / 180.0);
 	
@@ -135,11 +134,12 @@ void launchProjectile(float player_x, float player_y, float player_z, int player
 	// Save the starting y value
 	projectiles[13] = player_y;
 	
-	printf("launched: ");
+	printf("Projectile %d Fired!\n", 0);
+	/*printf("launched: ");
 	for(i = 0; i < INDEX; ++i) {
 		printf("%d: %f, ", i, projectiles[i]);
 	}
-	printf("\n");
+	printf("\n");*/
 	
 	createMob(0, player_x, player_y, player_z, player_rot);
 
@@ -417,7 +417,7 @@ void update() {
 				projectiles[3] = func + projectiles[13];
 			} else {
 				// Gravity
-				projectiles[3] -= 0.1;
+				projectiles[3] -= 1.0;
 			}
 			setMobPosition(0, projectiles[2], projectiles[3], projectiles[4], projectiles[7]);
 
@@ -427,11 +427,13 @@ void update() {
 
 			if((projectiles[2] > 99.0) || (projectiles[2] < 0.0) || (projectiles[4] > 99.0) || (projectiles[4] < 0.0)) {
 				hideMob(0);
+				printf("OUT!\n");
+				projectiles[11] = 0;
 			} else if (y < 50 && y > 0) {
 				if((world[x][y][z] != 0) && (world[x][y][z] != 5)) {
 					hideMob(0);
 					projectiles[11] = 0;
-					printf("BOOM\n");
+					printf("BOOM!\n");
 					boom(x, y, z);
 				}
 			}
