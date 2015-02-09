@@ -17,7 +17,7 @@
 #include "graphics.h"
 
 #define PI 3.14159265
-#define INDEX 11
+#define INDEX 12
 
 	/* mouse function called by GLUT when a button is pressed or released */
 void mouse(int, int, int, int);
@@ -123,7 +123,10 @@ void launchProjectile(float player_x, float player_y, float player_z, int player
 	projectiles[9] = 0;
 	
 	// Max height of Y
-	projectiles[10] = velocity * 20.0;
+	projectiles[10] = velocity * 30.0;
+	
+	// Flag indicating the projectile is launched
+	projectiles[11] = 1;
 	
 	printf("launched: ");
 	for(i = 0; i < INDEX; ++i) {
@@ -339,19 +342,88 @@ void update() {
 		}
 		
 		// Projectile
-		projectiles[2] += projectiles[5];
-		projectiles[4] += projectiles[6];
-		//func = (float) (-(0.01*(projectiles[9]-45)*(projectiles[9]-45))) + 20.0;
-		if (projectiles[9] < projectiles[10]) {
-			projectiles[9] += projectiles[8];
-			projectiles[3] += projectiles[8];
-		} else {
-			projectiles[3] -= projectiles[8];
-		}
-		setMobPosition(0, projectiles[2], projectiles[3], projectiles[4], projectiles[7]);
+		if(projectiles[11] == 1) {
+			projectiles[2] += projectiles[5];
+			projectiles[4] += projectiles[6];
+			//func = (float) (-(0.01*(projectiles[9]-45)*(projectiles[9]-45))) + 20.0;
+			if(projectiles[1] > 0.0) {
+				if(projectiles[9] < projectiles[10]) {
+					projectiles[9] += projectiles[8];
+					projectiles[3] += projectiles[8];
+				} else {
+					projectiles[3] -= projectiles[8];
+				}
+			} else {
+				projectiles[3] -= 0.1;
+			}
+			setMobPosition(0, projectiles[2], projectiles[3], projectiles[4], projectiles[7]);
 
-		if((projectiles[2] > 99.0) || (projectiles[2] < 0.0) || (projectiles[4] > 99.0) || (projectiles[4] < 0.0)) {
-			hideMob(0);
+			x = (int) projectiles[2];
+			y = (int) projectiles[3];
+			z = (int) projectiles[4];
+
+			if((projectiles[2] > 99.0) || (projectiles[2] < 0.0) || (projectiles[4] > 99.0) || (projectiles[4] < 0.0)) {
+				hideMob(0);
+			} else if (y < 50 && y > 0) {
+				if((world[x][y][z] != 0) && (world[x][y][z] != 5)) {
+					hideMob(0);
+					projectiles[11] = 0;
+					printf("BOOM\n");
+					if(y < 48) {
+						world[x][y + 2][z] = 0;
+					}
+					if(y < 49) {
+						world[x][y + 1][z] = 0;
+						world[x][y + 1][z + 1] = 0;
+						world[x][y + 1][z - 1] = 0;
+						world[x - 1][y + 1][z] = 0;
+						world[x - 1][y + 1][z + 1] = 0;
+						world[x - 1][y + 1][z - 1] = 0;
+						world[x + 1][y + 1][z] = 0;
+						world[x + 1][y + 1][z + 1] = 0;
+						world[x + 1][y + 1][z - 1] = 0;
+					}
+					world[x][y][z] = 0;
+					world[x][y][z + 1] = 0;
+					world[x][y][z - 1] = 0;
+					world[x - 1][y][z] = 0;
+					world[x - 1][y][z + 1] = 0;
+					world[x - 1][y][z - 1] = 0;
+					world[x + 1][y][z] = 0;
+					world[x + 1][y][z + 1] = 0;
+					world[x + 1][y][z - 1] = 0;
+					world[x + 2][y][z] = 0;
+					world[x + 2][y][z + 1] = 0;
+					world[x + 2][y][z - 1] = 0;
+					world[x + 2][y][z + 2] = 0;
+					world[x + 2][y][z - 2] = 0;
+					world[x - 2][y][z] = 0;
+					world[x - 2][y][z + 1] = 0;
+					world[x - 2][y][z - 1] = 0;
+					world[x - 2][y][z + 2] = 0;
+					world[x - 2][y][z - 2] = 0;
+					world[x][y][z + 2] = 0;
+					world[x][y][z - 2] = 0;
+					world[x + 1][y][z + 2] = 0;
+					world[x + 1][y][z - 2] = 0;
+					world[x - 1][y][z + 2] = 0;
+					world[x - 1][y][z - 2] = 0;				
+					if(y > 0) {
+						world[x][y - 1][z] = 0;
+						world[x][y - 1][z + 1] = 0;
+						world[x][y - 1][z - 1] = 0;
+						world[x - 1][y - 1][z] = 0;
+						world[x - 1][y - 1][z + 1] = 0;
+						world[x - 1][y - 1][z - 1] = 0;
+						world[x + 1][y - 1][z] = 0;
+						world[x + 1][y - 1][z + 1] = 0;
+						world[x + 1][y - 1][z - 1] = 0;
+					}
+					if(y > 1) {
+						world[x][y - 2][z] = 0;
+					}
+				}
+			}
 		}
 		
 		free(pos_x);
@@ -383,7 +455,7 @@ void mouse(int button, int state, int x, int y) {
 		if(state == GLUT_UP) {
 			val = (int) yaxis[0];
 			rot = val % 360;
-			printf("y: %f, r: %d\n", yaxis[0], rot);	
+			//printf("y: %f, r: %d\n", yaxis[0], rot);	
 			launchProjectile(-pos_x[0], -pos_y[0], -pos_z[0], rot - 90);
 		} else {
 			printf("Angle: %d - Velocity: %f\n", angle, velocity);
@@ -418,12 +490,12 @@ void mouse(int button, int state, int x, int y) {
 		}
 	}
 
-	if (state == GLUT_UP)
-		printf("up - ");
+	/*if (state == GLUT_UP)
+		//printf("up - ");
 	else
-		printf("down - ");
+		//printf("down - ");
 
-	printf("%d %d\n", x, y);
+	//printf("%d %d\n", x, y);*/
 	
 	free(xaxis);
 	free(yaxis);
