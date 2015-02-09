@@ -17,7 +17,7 @@
 #include "graphics.h"
 
 #define PI 3.14159265
-#define INDEX 12
+#define INDEX 14
 
 	/* mouse function called by GLUT when a button is pressed or released */
 void mouse(int, int, int, int);
@@ -119,14 +119,21 @@ void launchProjectile(float player_x, float player_y, float player_z, int player
 	// Calculation: sin of angle * velocity
 	projectiles[8] = sinf(val2) * velocity;
 	
-	// Counter for calculate Y position
-	projectiles[9] = 0;
+	// Counter to calculate Y position
+	// Set it to 0 on trajectory
+	projectiles[9] = (-1) * sqrt(velocity * 30.0 + player_y);
 	
 	// Max height of Y
-	projectiles[10] = velocity * 30.0;
+	projectiles[10] = velocity * 30.0 + player_y;
 	
 	// Flag indicating the projectile is launched
 	projectiles[11] = 1;
+	
+	// Flag indicating to decrease height
+	projectiles[12] = 0;
+	
+	// Save the starting y value
+	projectiles[13] = player_y;
 	
 	printf("launched: ");
 	for(i = 0; i < INDEX; ++i) {
@@ -404,15 +411,12 @@ void update() {
 		if(projectiles[11] == 1) {
 			projectiles[2] += projectiles[5];
 			projectiles[4] += projectiles[6];
-			//func = (float) (-(0.01*(projectiles[9]-45)*(projectiles[9]-45))) + 20.0;
 			if(projectiles[1] > 0.0) {
-				if(projectiles[9] < projectiles[10]) {
-					projectiles[9] += projectiles[8];
-					projectiles[3] += projectiles[8];
-				} else {
-					projectiles[3] -= projectiles[8];
-				}
+				projectiles[9] += projectiles[8];
+				func = (float) (-(projectiles[9] * projectiles[9])) + projectiles[10];
+				projectiles[3] = func + projectiles[13];
 			} else {
+				// Gravity
 				projectiles[3] -= 0.1;
 			}
 			setMobPosition(0, projectiles[2], projectiles[3], projectiles[4], projectiles[7]);
