@@ -1,7 +1,17 @@
-
-
 INCLUDES = -F/System/Library/Frameworks -framework OpenGL -framework GLUT -lm
+HEADERS = perlin.h graphics.h
+C_FILES = a1.c graphics.c visible.c perlin.c
+TARGET = a1
 
-a1: a1.c graphics.c visible.c graphics.h
-	gcc a1.c graphics.c visible.c -o a1 $(INCLUDES) 
+all: default
+
+default: $(TARGET)
+
+$(TARGET): $(C_FILES) $(HEADERS)
+	gcc $(C_FILES) -o $(TARGET) $(INCLUDES)
+	
+clean:
+	rm -f *~
+	rm -f *.o
+	rm -f $(TARGET)
 

@@ -16,6 +16,9 @@
 #include "perlin.h"
 #include "graphics.h"
 
+#define PI 3.14159265
+#define INDEX 11
+
 	/* mouse function called by GLUT when a button is pressed or released */
 void mouse(int, int, int, int);
 
@@ -69,12 +72,71 @@ extern void tree(float, float, float, float, float, float, int);
 
 /********* end of extern variable declarations **************/
 
-int update_clouds = 1;
-double time_sec;
+double time_sec, time_usec, sec, usec;
 struct timeval tv;
+
+// Save projectile velocity
+float projectiles[INDEX];
+float velocity;
+int angle;
+
+double start_x, start_y;
 
 /************** end variable declarations **************/
 
+void launchProjectile(float player_x, float player_y, float player_z, int player_rot) {
+	int i;
+	float val = player_rot * (PI / 180.0);
+	float val2 = angle * (PI / 180.0);
+	
+	// Angle of the projectile
+	projectiles[0] = angle;
+	
+	// Velocity of the projectile
+	projectiles[1] = velocity;
+	
+	// Position X of the projectile
+	projectiles[2] = player_x;
+	
+	// Position Y of the projectile
+	projectiles[3] = player_y;
+	
+	// Position Z of the projectile
+	projectiles[4] = player_z;
+	
+	// Incrementation value of X.
+	// Calculation: cos of view point angle * cos of angle * velocity
+	projectiles[5] = cosf(val) * cosf(val2) * velocity;
+	
+	// Incrementation value of Z.
+	// Calculation: sin of view point angle * cos of angle * velocity
+	projectiles[6] = sinf(val) * cosf(val2) * velocity;
+	
+	// Projectiles rotation
+	projectiles[7] = player_rot;
+	
+	// Incrementation value of Y.
+	// Calculation: sin of angle * velocity
+	projectiles[8] = sinf(val2) * velocity;
+	
+	// Counter for calculate Y position
+	projectiles[9] = 0;
+	
+	// Max height of Y
+	projectiles[10] = velocity * 20.0;
+	
+	printf("launched: ");
+	for(i = 0; i < INDEX; ++i) {
+		printf("%d: %f, ", i, projectiles[i]);
+	}
+	printf("\n");
+	
+	createMob(0, player_x, player_y, player_z, player_rot);
+
+	/*} else {
+		printf("You can't launch more projectiles!\n");
+	}*/
+}
 
 	/*** collisionResponse() ***/
 	/* -performs collision detection and response */
@@ -102,7 +164,7 @@ void collisionResponse() {
 	y = ((int) *pos_y) * (-1);
 	z = ((int) *pos_z) * (-1);
 		
-	printf("Position x=%d, y=%d, z=%d\n", x, y, z);
+	//printf("Position x=%d, y=%d, z=%d\n", x, y, z);
 
 	// No need to affects gravity nor collsions with blocks on the
 	// player if he is on the side of the map or flying
@@ -171,8 +233,9 @@ void update() {
 	int i, j, x, y, z;
 	float *pos_x, *pos_y, *pos_z;
 	int clouds[WORLDZ];
-	double sec, usec;   		
-
+	double time;
+	float func;
+	
 	/* sample animation for the test world, don't remove this code */
 	/* -demo of animating mobs */
    if (testWorld) {
@@ -223,11 +286,13 @@ void update() {
       if (mob1ry > 360.0) mob1ry -= 360.0;
     /* end testworld animation */
    } else {
-   		// time
+   		// Update time
    		gettimeofday(&tv,NULL);
-   		sec = (double) tv.tv_sec;
-   		usec = (double) tv.tv_usec / 1000000.0;
-   		if(sec > time_sec) {
+   		time_sec = (double) tv.tv_sec;
+   		time_usec = (double) tv.tv_usec / 1000000.0;
+   		time = time_sec + time_usec;
+   		
+   		if(time_sec > sec) {
    			// Save clouds
    			for(i=0; i < WORLDZ; i++) {
 				clouds[i] = 0;
@@ -249,8 +314,8 @@ void update() {
 				world[WORLDX - 1][WORLDY - 1][i] = clouds[i];
 			}
 			
-			// Update time_sec
-   			time_sec = sec;
+			// Update sec
+   			sec = time_sec;
    		}
    
 		pos_x = malloc(sizeof(float));
@@ -273,6 +338,22 @@ void update() {
 			}
 		}
 		
+		// Projectile
+		projectiles[2] += projectiles[5];
+		projectiles[4] += projectiles[6];
+		//func = (float) (-(0.01*(projectiles[9]-45)*(projectiles[9]-45))) + 20.0;
+		if (projectiles[9] < projectiles[10]) {
+			projectiles[9] += projectiles[8];
+			projectiles[3] += projectiles[8];
+		} else {
+			projectiles[3] -= projectiles[8];
+		}
+		setMobPosition(0, projectiles[2], projectiles[3], projectiles[4], projectiles[7]);
+
+		if((projectiles[2] > 99.0) || (projectiles[2] < 0.0) || (projectiles[4] > 99.0) || (projectiles[4] < 0.0)) {
+			hideMob(0);
+		}
+		
 		free(pos_x);
 		free(pos_y);
 		free(pos_z);
@@ -286,20 +367,70 @@ void update() {
 	/* -x,y are the screen coordinates when the mouse is pressed or */
 	/*  released */ 
 void mouse(int button, int state, int x, int y) {
+	double dist_x, dist_y;
+	int rot, val;
 
-   if (button == GLUT_LEFT_BUTTON)
-      printf("left button - ");
-   else if (button == GLUT_MIDDLE_BUTTON)
-      printf("middle button - ");
-   else
-      printf("right button - ");
+	float *xaxis = malloc(sizeof(float));
+	float *yaxis = malloc(sizeof(float));
+	float *zaxis = malloc(sizeof(float));
+	float *pos_x = malloc(sizeof(float));
+	float *pos_y = malloc(sizeof(float));
+	float *pos_z = malloc(sizeof(float));
+	getViewOrientation(xaxis, yaxis, zaxis);
+	getViewPosition(pos_x, pos_y, pos_z);
 
-   if (state == GLUT_UP)
-      printf("up - ");
-   else
-      printf("down - ");
+	if (button == GLUT_LEFT_BUTTON) {
+		if(state == GLUT_UP) {
+			val = (int) yaxis[0];
+			rot = val % 360;
+			printf("y: %f, r: %d\n", yaxis[0], rot);	
+			launchProjectile(-pos_x[0], -pos_y[0], -pos_z[0], rot - 90);
+		} else {
+			printf("Angle: %d - Velocity: %f\n", angle, velocity);
+		}
+	}
+	else if (button == GLUT_MIDDLE_BUTTON) {
+	//printf("middle button - ");
+	} else {
+		//printf("right button - ");
+		if(state == GLUT_UP) {
+			// Compute the distance
+			dist_x = (double) x - start_x;
+			dist_y = start_y - (double) y;
+			
+			// Set the angle and the velocity
+			angle += (int) ((dist_y / 768) * 90);
+			velocity += (dist_x / 1024);
+			
+			// Keep the velocity between 0 and 1
+			if(velocity < 0.0) {velocity = 0.0;}
+			if(velocity > 1.0) {velocity = 1.0;}
+			
+			// Keep the angle 
+			if(angle < 0) {angle = 0;}
+			if(angle > 90) {angle = 90;}
+			
+			printf("Angle: %d - Velocity: %f\n", angle, velocity);
+		} else {
+			// Save the values of x and y
+			start_x = (double) x;
+			start_y = (double) y;
+		}
+	}
 
-   printf("%d %d\n", x, y);
+	if (state == GLUT_UP)
+		printf("up - ");
+	else
+		printf("down - ");
+
+	printf("%d %d\n", x, y);
+	
+	free(xaxis);
+	free(yaxis);
+	free(zaxis);
+	free(pos_x);
+	free(pos_y);
+	free(pos_z);
 }
 
 
@@ -357,12 +488,16 @@ float noise;
       createPlayer(0, 52.0, 27.0, 52.0, 0.0);
 
    } else {
+		velocity = 0.0;
+		start_x = 0;
+   
    		// Deactivate flying (can be activate by pressing 'f' key)
    		flycontrol = 0;
    		
    		// Initialize time value
    		gettimeofday(&tv,NULL);
-   		time_sec = (double) tv.tv_sec;
+   		time_sec = sec = (double) tv.tv_sec;
+   		time_usec = usec = (double) tv.tv_usec / 1000000.0;
    
 		// Building the world with perlin noise (see perlin.c)
 		for(i=0; i<WORLDX; i++) {
