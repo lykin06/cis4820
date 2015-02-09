@@ -141,6 +141,65 @@ void launchProjectile(float player_x, float player_y, float player_z, int player
 	}*/
 }
 
+/*
+ * Explodes the world
+ */
+void boom(int x, int y, int z) {
+	if(y < 48) {
+		world[x][y + 2][z] = 0;
+	}
+	if(y < 49) {
+		world[x][y + 1][z] = 0;
+		world[x][y + 1][z + 1] = 0;
+		world[x][y + 1][z - 1] = 0;
+		world[x - 1][y + 1][z] = 0;
+		world[x - 1][y + 1][z + 1] = 0;
+		world[x - 1][y + 1][z - 1] = 0;
+		world[x + 1][y + 1][z] = 0;
+		world[x + 1][y + 1][z + 1] = 0;
+		world[x + 1][y + 1][z - 1] = 0;
+	}
+	world[x][y][z] = 0;
+	world[x][y][z + 1] = 0;
+	world[x][y][z - 1] = 0;
+	world[x - 1][y][z] = 0;
+	world[x - 1][y][z + 1] = 0;
+	world[x - 1][y][z - 1] = 0;
+	world[x + 1][y][z] = 0;
+	world[x + 1][y][z + 1] = 0;
+	world[x + 1][y][z - 1] = 0;
+	world[x + 2][y][z] = 0;
+	world[x + 2][y][z + 1] = 0;
+	world[x + 2][y][z - 1] = 0;
+	world[x + 2][y][z + 2] = 0;
+	world[x + 2][y][z - 2] = 0;
+	world[x - 2][y][z] = 0;
+	world[x - 2][y][z + 1] = 0;
+	world[x - 2][y][z - 1] = 0;
+	world[x - 2][y][z + 2] = 0;
+	world[x - 2][y][z - 2] = 0;
+	world[x][y][z + 2] = 0;
+	world[x][y][z - 2] = 0;
+	world[x + 1][y][z + 2] = 0;
+	world[x + 1][y][z - 2] = 0;
+	world[x - 1][y][z + 2] = 0;
+	world[x - 1][y][z - 2] = 0;				
+	if(y > 0) {
+		world[x][y - 1][z] = 0;
+		world[x][y - 1][z + 1] = 0;
+		world[x][y - 1][z - 1] = 0;
+		world[x - 1][y - 1][z] = 0;
+		world[x - 1][y - 1][z + 1] = 0;
+		world[x - 1][y - 1][z - 1] = 0;
+		world[x + 1][y - 1][z] = 0;
+		world[x + 1][y - 1][z + 1] = 0;
+		world[x + 1][y - 1][z - 1] = 0;
+	}
+	if(y > 1) {
+		world[x][y - 2][z] = 0;
+	}
+}
+
 	/*** collisionResponse() ***/
 	/* -performs collision detection and response */
 	/*  sets new xyz  to position of the viewpoint after collision */
@@ -369,59 +428,7 @@ void update() {
 					hideMob(0);
 					projectiles[11] = 0;
 					printf("BOOM\n");
-					if(y < 48) {
-						world[x][y + 2][z] = 0;
-					}
-					if(y < 49) {
-						world[x][y + 1][z] = 0;
-						world[x][y + 1][z + 1] = 0;
-						world[x][y + 1][z - 1] = 0;
-						world[x - 1][y + 1][z] = 0;
-						world[x - 1][y + 1][z + 1] = 0;
-						world[x - 1][y + 1][z - 1] = 0;
-						world[x + 1][y + 1][z] = 0;
-						world[x + 1][y + 1][z + 1] = 0;
-						world[x + 1][y + 1][z - 1] = 0;
-					}
-					world[x][y][z] = 0;
-					world[x][y][z + 1] = 0;
-					world[x][y][z - 1] = 0;
-					world[x - 1][y][z] = 0;
-					world[x - 1][y][z + 1] = 0;
-					world[x - 1][y][z - 1] = 0;
-					world[x + 1][y][z] = 0;
-					world[x + 1][y][z + 1] = 0;
-					world[x + 1][y][z - 1] = 0;
-					world[x + 2][y][z] = 0;
-					world[x + 2][y][z + 1] = 0;
-					world[x + 2][y][z - 1] = 0;
-					world[x + 2][y][z + 2] = 0;
-					world[x + 2][y][z - 2] = 0;
-					world[x - 2][y][z] = 0;
-					world[x - 2][y][z + 1] = 0;
-					world[x - 2][y][z - 1] = 0;
-					world[x - 2][y][z + 2] = 0;
-					world[x - 2][y][z - 2] = 0;
-					world[x][y][z + 2] = 0;
-					world[x][y][z - 2] = 0;
-					world[x + 1][y][z + 2] = 0;
-					world[x + 1][y][z - 2] = 0;
-					world[x - 1][y][z + 2] = 0;
-					world[x - 1][y][z - 2] = 0;				
-					if(y > 0) {
-						world[x][y - 1][z] = 0;
-						world[x][y - 1][z + 1] = 0;
-						world[x][y - 1][z - 1] = 0;
-						world[x - 1][y - 1][z] = 0;
-						world[x - 1][y - 1][z + 1] = 0;
-						world[x - 1][y - 1][z - 1] = 0;
-						world[x + 1][y - 1][z] = 0;
-						world[x + 1][y - 1][z + 1] = 0;
-						world[x + 1][y - 1][z - 1] = 0;
-					}
-					if(y > 1) {
-						world[x][y - 2][z] = 0;
-					}
+					boom(x, y, z);
 				}
 			}
 		}
