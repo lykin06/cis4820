@@ -33,7 +33,6 @@ extern GLfloat* getLightPosition();
 extern void setViewPosition(float, float, float);
 extern void getViewPosition(float *, float *, float *);
 extern void getOldViewPosition(float *, float *, float *);
-extern void setViewOrientation(float, float, float);
 extern void getViewOrientation(float *, float *, float *);
 
 	/* add cube to display list so it will be drawn */
@@ -51,13 +50,6 @@ extern void setPlayerPosition(int, float, float, float, float);
 extern void hidePlayer(int);
 extern void showPlayer(int);
 
-	/* 2D drawing functions */
-extern void  draw2Dline(int, int, int, int, int);
-extern void  draw2Dbox(int, int, int, int);
-extern void  draw2Dtriangle(int, int, int, int, int, int);
-extern void  set2Dcolour(float []);
-
-
 	/* flag which is set to 1 when flying behaviour is desired */
 extern int flycontrol;
 	/* flag used to indicate that the test world should be used */
@@ -70,10 +62,6 @@ extern int dig;
 extern int netClient;
 	/* flag indicates the program is a server when set = 1 */
 extern int netServer; 
-	/* size of the window in pixels */
-extern int screenWidth, screenHeight;
-	/* flag indicates if map is to be printed */
-extern int displayMap;
 
 	/* frustum corner coordinates, used for visibility determination  */
 extern float corners[4][3];
@@ -226,7 +214,6 @@ void boom(int x, int y, int z) {
 	/* note that the world coordinates returned from getViewPosition()
 	   will be the negative value of the array indices */
 void collisionResponse() {
-
 	int x, y, z;
 	float *pos_x, *pos_y, *pos_z;
 	float *old_x, *old_y, *old_z;
@@ -303,36 +290,6 @@ void collisionResponse() {
 	free(old_x);
 	free(old_y);
 	free(old_z);
-
-}
-
-
-	/******* draw2D() *******/
-	/* draws 2D shapes on screen */
-	/* use the following functions: 			*/
-	/*	draw2Dline(int, int, int, int, int);		*/
-	/*	draw2Dbox(int, int, int, int);			*/
-	/*	draw2Dtriangle(int, int, int, int, int, int);	*/
-	/*	set2Dcolour(float []); 				*/
-	/* colour must be set before other functions are called	*/
-void draw2D() {
-
-   if (testWorld) {
-		/* draw some sample 2d shapes */
-      GLfloat green[] = {0.0, 0.5, 0.0, 0.5};
-      set2Dcolour(green);
-      draw2Dline(0, 0, 500, 500, 15);
-      draw2Dtriangle(0, 0, 200, 200, 0, 200);
-
-      GLfloat black[] = {0.0, 0.0, 0.0, 0.5};
-      set2Dcolour(black);
-      draw2Dbox(500, 380, 524, 388);
-   } else {
-
-	/* your code goes here */
-
-   }
-
 }
 
 
@@ -345,13 +302,12 @@ void update() {
 	int i, j, x, y, z;
 	float *pos_x, *pos_y, *pos_z;
 	int clouds[WORLDZ];
-	//double time;
+	double time;
 	float func;
-
+	
 	/* sample animation for the test world, don't remove this code */
 	/* -demo of animating mobs */
    if (testWorld) {
-
 	/* sample of rotation and positioning of mob */
 	/* coordinates for mob 0 */
       static float mob0x = 50.0, mob0y = 25.0, mob0z = 52.0;
@@ -398,14 +354,12 @@ void update() {
       mob1ry += 1.0;
       if (mob1ry > 360.0) mob1ry -= 360.0;
     /* end testworld animation */
-
    } else {
-
-		// Update time
+   		// Update time
    		gettimeofday(&tv,NULL);
    		time_sec = (double) tv.tv_sec;
    		time_usec = (double) tv.tv_usec / 1000000.0;
-   		//time = time_sec + time_usec;
+   		time = time_sec + time_usec;
    		
    		if(time_sec > sec) {
    			// Save clouds
@@ -488,7 +442,6 @@ void update() {
 		free(pos_x);
 		free(pos_y);
 		free(pos_z);
-
    }
 }
 
@@ -620,7 +573,6 @@ float noise;
       createPlayer(0, 52.0, 27.0, 52.0, 0.0);
 
    } else {
-
 		velocity = 0.0;
 		start_x = 0;
    
