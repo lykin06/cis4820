@@ -97,6 +97,9 @@ float projectiles[INDEX];
 float velocity;
 int angle;
 
+// Socket values (client_sockfd only used by server)
+int my_sockfd, client_sockfd;
+
 double start_x, start_y;
 
 /************** end variable declarations **************/
@@ -647,7 +650,13 @@ void buildingWorld()
 
 int main(int argc, char** argv)
 {
-int i, j, k;
+	int i, j, k;
+
+	// Server - Client communication values
+	int result;
+	socklen_t addrlen, client_len;
+	struct sockaddr_in my_address, client_address;
+
 	/* initialize the graphics system */
    graphicsInit(&argc, argv);
 
@@ -708,7 +717,43 @@ int i, j, k;
    		gettimeofday(&tv,NULL);
    		time_sec = sec = (double) tv.tv_sec;
    		time_usec = usec = (double) tv.tv_usec / 1000000.0;
-   
+   		
+   		// Creating socket
+   		my_sockfd = socket(AF_INET, SOCK_STREAM, 0);
+   		
+   		// Address set up
+   		my_address.sin_family = AF_INET;
+   		if(netServer == 1) {
+   			my_address.sin_addr.s_addr = htonl(INADDR_ANY);
+   		} else {
+   			my_address.sin_addr.s_addr = inet_addr("127.0.0.1");
+   		}
+   		my_address.sin_port = htons(9734);
+   		addrlen = sizeof(my_address);
+   		
+   		// Binding server socket and waiting for client
+   		if(netServer == 1) {
+   			bind(my_sockfd, (struct sockaddr *)&my_address, addrlen);
+   			listen(my_sockfd, 5);
+   			printf("Server waiting for players\n");
+   			client_sockfd = accept(my_sockfd, (struct sockaddr *)&client_address, &client_len);
+   		}
+   		
+   		// Connect client to the server
+   		else if (netClient == 1) {
+   			result = connect(my_sockfd, (struct sockaddr *)&my_address, addrlen);
+   			if(result == -1) {
+   				perror("ERROR - Unable to connect to the server\n");
+   				exit(1);
+   			}
+   		}
+   		
+   		// No flag entered abort execution
+   		else if ((netServer == 0) && (netClient == 0)) {
+   			perror("ERROR - No flag entered\n-server to run as the server\n-client to run as the client\n");
+   			exit(1);
+   		}
+   		  
 		buildingWorld();
    }
 
