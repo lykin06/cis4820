@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <math.h>
 #include <time.h>
+#include <ctype.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -23,6 +24,12 @@
 
 #define PI 3.14159265
 #define INDEX 14
+#define BUFSIZE 512
+
+// Server Flags
+#define PROJECTILE 	0
+#define ANGLE		1
+#define MOVE		2
 
 	/* mouse function called by GLUT when a button is pressed or released */
 void mouse(int, int, int, int);
@@ -99,6 +106,10 @@ int angle;
 
 // Socket values (client_sockfd only used by server)
 int my_sockfd, client_sockfd;
+socklen_t addrlen, client_len;
+struct sockaddr_in my_address, client_address;
+
+int pchar;
 
 double start_x, start_y;
 
@@ -343,6 +354,48 @@ void draw2D() {
 
 }
 
+float parse_float(char *message) {
+	//printf("Parse Message\n");
+	char c;
+	char buf[BUFSIZE];
+	int i;
+	int max = strlen(message);
+	
+	for(i = pchar; i < max; ++i) {
+		//printf("FOR\n");
+		c = message[i];
+		//printf("pchar = %d | c = %c\n", i, c);
+		if(isspace(c)) {
+			buf[i] = '\0';
+			pchar = i + 1;
+			return atof(buf);
+		} else {
+			buf[i] = c;
+		}
+	}
+	pchar = i;
+	return atof(buf);
+}
+
+int parse_int(char *message) {
+	char c;
+	char buf[BUFSIZE];
+	int i;
+	int max = strlen(message);
+	
+	for(i = pchar; i < max; ++i) {
+		c = message[i];
+		if(isspace(c)) {
+			buf[i] = '\0';
+			pchar = i + 1;
+			return atoi(buf);
+		} else {
+			buf[i] = c;
+		}
+	}
+	pchar = i;
+	return atoi(buf);
+}
 
 	/*** update() ***/
 	/* background process, it is called when there are no other events */
@@ -355,6 +408,9 @@ void update() {
 	int clouds[WORLDZ];
 	//double time;
 	float func;
+	char *message;
+	int recvlen;
+	int test;
 
 	/* sample animation for the test world, don't remove this code */
 	/* -demo of animating mobs */
@@ -461,6 +517,39 @@ void update() {
 					}
 				}
 			}
+			
+			free(pos_x);
+			free(pos_y);
+			free(pos_z);
+		}
+		
+		// Update values from client
+		if(netServer == 1) {
+			message = malloc(sizeof(char)*BUFSIZE);
+			recvlen = read(client_sockfd, message, BUFSIZE);
+			if(recvlen < 0) {
+				perror("ERROR - can't read from socket\n");
+			} else if(recvlen > 0) {
+				message[recvlen] = '\0';
+				pchar = 0;
+				test = parse_int(message);
+				printf("Read %d char: %s\ntest %d pchar %d\n", recvlen, message, test, pchar);
+				switch(test) {
+					case PROJECTILE:
+						printf("PROJECTILE\n");
+						break;
+					case ANGLE:
+						printf("ANGLE\n");
+						break;
+					case MOVE:
+						printf("MOVE\n");
+						break;
+					default:
+						perror("ERROR - Unknown flag\n");
+						break;
+				}
+			}
+			free(message);
 		}
 		
 		// Projectile
@@ -505,8 +594,8 @@ void update() {
 	/*  released */ 
 void mouse(int button, int state, int x, int y) {
 	double dist_x, dist_y;
-	int rot, val;
-
+	int rot, val, w;
+	char *message = malloc(sizeof(char)*BUFSIZE);
 	float *xaxis = malloc(sizeof(float));
 	float *yaxis = malloc(sizeof(float));
 	float *zaxis = malloc(sizeof(float));
@@ -516,51 +605,56 @@ void mouse(int button, int state, int x, int y) {
 	getViewOrientation(xaxis, yaxis, zaxis);
 	getViewPosition(pos_x, pos_y, pos_z);
 
-	if (button == GLUT_LEFT_BUTTON) {
-		if(state == GLUT_UP) {
-			val = (int) yaxis[0];
-			rot = val % 360;
-			//printf("y: %f, r: %d\n", yaxis[0], rot);	
-			launchProjectile(-pos_x[0], -pos_y[0], -pos_z[0], rot - 90);
-		} else {
-			printf("Angle: %d - Velocity: %f\n", angle, velocity);
+	if(netClient == 1) {
+		if (button == GLUT_LEFT_BUTTON) {
+			if(state == GLUT_UP) {
+				val = (int) yaxis[0];
+				rot = val % 360;
+				//printf("y: %f, r: %d\n", yaxis[0], rot);	
+				launchProjectile(-pos_x[0], -pos_y[0], -pos_z[0], rot - 90);
+				sprintf(message, "%d %f %f %f %d", PROJECTILE, -pos_x[0], -pos_y[0], -pos_z[0], rot - 90);
+				w = write(my_sockfd, message, strlen(message));
+				if(w < 0) {
+					perror("ERROR - can't write in the socket\n");
+				}
+			} else {
+				printf("Angle: %d - Velocity: %f\n", angle, velocity);
+			}
 		}
-	}
-	else if (button == GLUT_MIDDLE_BUTTON) {
-	//printf("middle button - ");
-	} else {
-		//printf("right button - ");
-		if(state == GLUT_UP) {
-			// Compute the distance
-			dist_x = (double) x - start_x;
-			dist_y = start_y - (double) y;
-			
-			// Set the angle and the velocity
-			angle += (int) ((dist_y / 768) * 90);
-			velocity += (dist_x / 1024);
-			
-			// Keep the velocity between 0 and 1
-			if(velocity < 0.0) {velocity = 0.0;}
-			if(velocity > 1.0) {velocity = 1.0;}
-			
-			// Keep the angle 
-			if(angle < 0) {angle = 0;}
-			if(angle > 90) {angle = 90;}
-			
+		else if (button == GLUT_MIDDLE_BUTTON) {
 			printf("Angle: %d - Velocity: %f\n", angle, velocity);
 		} else {
-			// Save the values of x and y
-			start_x = (double) x;
-			start_y = (double) y;
+			//printf("right button - ");
+			if(state == GLUT_UP) {
+				// Compute the distance
+				dist_x = (double) x - start_x;
+				dist_y = start_y - (double) y;
+			
+				// Set the angle and the velocity
+				angle += (int) ((dist_y / 768) * 90);
+				velocity += (dist_x / 1024);
+			
+				// Keep the velocity between 0 and 1
+				if(velocity < 0.0) {velocity = 0.0;}
+				if(velocity > 1.0) {velocity = 1.0;}
+			
+				// Keep the angle 
+				if(angle < 0) {angle = 0;}
+				if(angle > 90) {angle = 90;}
+			
+				printf("Angle: %d - Velocity: %f\n", angle, velocity);
+				sprintf(message, "%d %d %f ", ANGLE, angle, velocity);
+				w = write(my_sockfd, message, strlen(message));
+				if(w < 0) {
+					perror("ERROR - can't write in the socket\n");
+				}
+			} else {
+				// Save the values of x and y
+				start_x = (double) x;
+				start_y = (double) y;
+			}
 		}
 	}
-
-	/*if (state == GLUT_UP)
-		//printf("up - ");
-	else
-		//printf("down - ");
-
-	//printf("%d %d\n", x, y);*/
 	
 	free(xaxis);
 	free(yaxis);
@@ -651,8 +745,6 @@ int main(int argc, char** argv)
 
 	// Server - Client communication values
 	int result;
-	socklen_t addrlen, client_len;
-	struct sockaddr_in my_address, client_address;
 
 	/* initialize the graphics system */
    graphicsInit(&argc, argv);
