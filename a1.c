@@ -355,46 +355,34 @@ void draw2D() {
 }
 
 float parse_float(char *message) {
-	//printf("Parse Message\n");
 	char c;
-	char buf[BUFSIZE];
-	int i;
-	int max = strlen(message);
+	char *buf;
+	int max, i;
+	float result;
 	
-	for(i = pchar; i < max; ++i) {
-		//printf("FOR\n");
-		c = message[i];
-		//printf("pchar = %d | c = %c\n", i, c);
+	buf = malloc(sizeof(char)*BUFSIZE);
+	max = strlen(message);
+	
+	for(i = 0; pchar < max; ++i, ++pchar) {
+		c = message[pchar];
 		if(isspace(c)) {
 			buf[i] = '\0';
-			pchar = i + 1;
-			return atof(buf);
+			result = atof(buf);
+			printf("buf %s - result %f\n", buf, result);
+			free(buf);
+			return result;
 		} else {
 			buf[i] = c;
 		}
 	}
-	pchar = i;
-	return atof(buf);
+	
+	result = atof(buf);
+	free(buf);
+	return result;
 }
 
 int parse_int(char *message) {
-	char c;
-	char buf[BUFSIZE];
-	int i;
-	int max = strlen(message);
-	
-	for(i = pchar; i < max; ++i) {
-		c = message[i];
-		if(isspace(c)) {
-			buf[i] = '\0';
-			pchar = i + 1;
-			return atoi(buf);
-		} else {
-			buf[i] = c;
-		}
-	}
-	pchar = i;
-	return atoi(buf);
+	return (int) parse_float(message);
 }
 
 	/*** update() ***/
@@ -410,7 +398,7 @@ void update() {
 	float func;
 	char *message;
 	int recvlen;
-	int test;
+	int flag;
 
 	/* sample animation for the test world, don't remove this code */
 	/* -demo of animating mobs */
@@ -532,14 +520,21 @@ void update() {
 			} else if(recvlen > 0) {
 				message[recvlen] = '\0';
 				pchar = 0;
-				test = parse_int(message);
-				printf("Read %d char: %s\ntest %d pchar %d\n", recvlen, message, test, pchar);
-				switch(test) {
+				flag = parse_int(message);
+				printf("Read %d char: %s\nflag %d pchar %d\n", recvlen, message, flag, pchar);
+				switch(flag) {
 					case PROJECTILE:
 						printf("PROJECTILE\n");
 						break;
 					case ANGLE:
+						angle = 90;
+						velocity = 1.0;
 						printf("ANGLE\n");
+						++pchar;
+						angle = parse_int(message);
+						++pchar;
+						velocity = parse_float(message);
+						printf("angle %d - velocity %f\n", angle, velocity);
 						break;
 					case MOVE:
 						printf("MOVE\n");
