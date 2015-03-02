@@ -407,7 +407,7 @@ void update() {
       if (mob1ry > 360.0) mob1ry -= 360.0;
     /* end testworld animation */
 
-   } else {
+   	} else {
 
 		// Update time
    		gettimeofday(&tv,NULL);
@@ -441,22 +441,24 @@ void update() {
    			sec = time_sec;
    		}
    
-		pos_x = malloc(sizeof(float));
-		pos_y = malloc(sizeof(float));
-		pos_z = malloc(sizeof(float));
+   		if(netClient == 1) {
+			pos_x = malloc(sizeof(float));
+			pos_y = malloc(sizeof(float));
+			pos_z = malloc(sizeof(float));
 	
-		getViewPosition(pos_x, pos_y, pos_z);
+			getViewPosition(pos_x, pos_y, pos_z);
 
-		x = ((int) *pos_x) * (-1);
-		y = ((int) *pos_y) * (-1);
-		z = ((int) *pos_z) * (-1);
+			x = ((int) *pos_x) * (-1);
+			y = ((int) *pos_y) * (-1);
+			z = ((int) *pos_z) * (-1);
 
-		// Gravity
-		// No need to affects gravity on the player if he is on the side of the map or flying
-		if(flycontrol == 0) {
-			if(*pos_y < -0.5) {
-				if((world[x][y - 1][z] == 0) || (world[x][y - 1][z] == 5)) {
-					setViewPosition(*pos_x, *pos_y + 0.1, *pos_z);
+			// Gravity
+			// No need to affects gravity on the player if he is on the side of the map or flying
+			if(flycontrol == 0) {
+				if(*pos_y < -0.5) {
+					if((world[x][y - 1][z] == 0) || (world[x][y - 1][z] == 5)) {
+						setViewPosition(*pos_x, *pos_y + 0.1, *pos_z);
+					}
 				}
 			}
 		}
@@ -492,12 +494,7 @@ void update() {
 				}
 			}
 		}
-		
-		free(pos_x);
-		free(pos_y);
-		free(pos_z);
-
-   }
+   	}
 }
 
 
