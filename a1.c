@@ -565,12 +565,84 @@ void mouse(int button, int state, int x, int y) {
 	free(pos_z);
 }
 
+void buildingWorld()
+{
+	int i, j, k, l;
+	float noise;
 
+	// Building the world with perlin noise (see perlin.c)
+	for(i=0; i<WORLDX; i++) {
+		for(j=0; j<WORLDZ; j++) {
+			noise = noise_generation(i, j);
+			k = (int) ((noise + 1) * 5);
+			for (l = 0; l < k; ++l) {
+				world[i][l][j] = 1;
+			}
+		}
+	}
+
+	// Create new clouds
+	for(i=0; i<WORLDX; i++) {
+	   	for(j=0; j<WORLDZ; j++) {
+		   	noise = noise_generation(i,j);
+		   	if(noise > 0.0) {
+			   	world[i][49][j] = 5;
+		   	} else {
+			   	world[i][49][j] = 0;
+		   	}
+	   	}
+	}
+
+	// Remove tiny clouds
+	for(i=0; i<WORLDX; i++) {
+	   	for(j=0; j<WORLDZ; j++) {
+		   	if (world[i][49][j] == 5) {
+			   	k = 0;
+			   	if (i < 99 && j < 99) {
+				   	if (world[i][49][j+1] == 5) {
+					   	++k;
+				   	}
+				   	if (world[i+1][49][j] == 5) {
+					  	++k;
+				   	}
+				   	if (world[i+1][49][j+1] == 5) {
+					   	++k;
+				   	}
+			   	}
+			  	if (i > 0 && j > 0) {
+				   	if (world[i][49][j-1] == 5) {
+					  	++k;
+				   	}
+				   	if (world[i-1][49][j] == 5) {
+					   	++k;
+				   	}
+				   	if (world[i-1][49][j-1] == 5) {
+						++k;
+				   	}
+			   	}
+			   	if (i > 0 && j < 99) {
+				   	if (world[i-1][49][j+1] == 5) {
+					   	++k;
+				   	}
+			   	}
+			   	if (i < 99 && j > 0) {
+				   	if (world[i+1][49][j-1] == 5) {
+					   	++k;
+				   	}
+			   	}
+
+			   	// Remove
+			   	if (k < 2) {
+				   	world[i][49][j] = 0;
+			   	}
+		   	}
+	   	}
+	}
+}
 
 int main(int argc, char** argv)
 {
-int i, j, k, l;
-float noise;
+int i, j, k;
 	/* initialize the graphics system */
    graphicsInit(&argc, argv);
 
@@ -632,74 +704,7 @@ float noise;
    		time_sec = sec = (double) tv.tv_sec;
    		time_usec = usec = (double) tv.tv_usec / 1000000.0;
    
-		// Building the world with perlin noise (see perlin.c)
-		for(i=0; i<WORLDX; i++) {
-			for(j=0; j<WORLDZ; j++) {
-				noise = noise_generation(i, j);
-				k = (int) ((noise + 1) * 5);
-				for (l = 0; l < k; ++l) {
-					world[i][l][j] = 1;
-				}
-		    }
-		}
-	   
-	   // Create new clouds
-	   for(i=0; i<WORLDX; i++) {
-		   for(j=0; j<WORLDZ; j++) {
-			   noise = noise_generation(i,j);
-			   if(noise > 0.0) {
-				   world[i][49][j] = 5;
-			   } else {
-				   world[i][49][j] = 0;
-			   }
-		   }
-	   }
-	   
-	   // Remove tiny clouds
-	   for(i=0; i<WORLDX; i++) {
-		   for(j=0; j<WORLDZ; j++) {
-			   if (world[i][49][j] == 5) {
-				   k = 0;
-				   if (i < 99 && j < 99) {
-					   if (world[i][49][j+1] == 5) {
-						   ++k;
-					   }
-					   if (world[i+1][49][j] == 5) {
-						   ++k;
-					   }
-					   if (world[i+1][49][j+1] == 5) {
-						   ++k;
-					   }
-				   }
-				   if (i > 0 && j > 0) {
-					   if (world[i][49][j-1] == 5) {
-						   ++k;
-					   }
-					   if (world[i-1][49][j] == 5) {
-						   ++k;
-					   }
-					   if (world[i-1][49][j-1] == 5) {
-						   ++k;
-					   }
-				   }
-				   if (i > 0 && j < 99) {
-					   if (world[i-1][49][j+1] == 5) {
-						   ++k;
-					   }
-				   }
-				   if (i < 99 && j > 0) {
-					   if (world[i+1][49][j-1] == 5) {
-						   ++k;
-					   }
-				   }
-
-				   // Remove
-				   if (k < 2) {
-					   world[i][49][j] = 0;
-				   }
-			   }
-		   }
-	   }
+		buildingWorld();
    }
 
 
