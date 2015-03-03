@@ -30,6 +30,9 @@
 #define PROJECTILE 	0
 #define ANGLE		1
 #define MOVE		2
+#define UPDATEPROJ	3
+#define OUT			4
+#define BOOM		5
 
 	/* mouse function called by GLUT when a button is pressed or released */
 void mouse(int, int, int, int);
@@ -335,22 +338,82 @@ void collisionResponse() {
 	/*	set2Dcolour(float []); 				*/
 	/* colour must be set before other functions are called	*/
 void draw2D() {
-
+	float size, mid_width, mid_height, flag, startw, starth, u, x, z;
+	float *pos_x, *pos_y, *pos_z;
+	
+	GLfloat green[] = {0.0, 0.5, 0.0, 0.5};
+	GLfloat black[] = {0.0, 0.0, 0.0, 0.5};
+	GLfloat red[] = {0.5, 0.0, 0.0, 0.5};
+	GLfloat blue[] = {0.0, 0.0, 0.5, 0.5};
    if (testWorld) {
 		/* draw some sample 2d shapes */
-      GLfloat green[] = {0.0, 0.5, 0.0, 0.5};
       set2Dcolour(green);
       draw2Dline(0, 0, 500, 500, 15);
       draw2Dtriangle(0, 0, 200, 200, 0, 200);
-
-      GLfloat black[] = {0.0, 0.0, 0.0, 0.5};
       set2Dcolour(black);
       draw2Dbox(500, 380, 524, 388);
-   } else {
+    } else {
+    	pos_x = malloc(sizeof(float));
+		pos_y = malloc(sizeof(float));
+		pos_z = malloc(sizeof(float));
+		getViewPosition(pos_x, pos_y, pos_z);
 
-	/* your code goes here */
-
-   }
+		if(screenWidth < screenHeight) {
+			size = screenWidth;
+			flag = 0;
+		} else {
+			size = screenHeight;
+			flag = 1;
+		}
+		mid_width = screenWidth / 2;
+		mid_height = screenHeight / 2;
+		printf("porj %d\n", (int) projectiles[11]);
+		
+		if(displayMap == 1) {
+			set2Dcolour(blue);
+			size = size / 3;
+			u = size / 100;
+			x = -pos_x[0] * u;
+			z = (100 + pos_z[0]) * u;
+			starth = screenHeight - size;
+			//printf("x %d, z %d, u %d\n", x, z, u);
+			draw2Dbox(x, screenHeight - z, x + u, screenHeight - z + u);
+			if(projectiles[11] == 1) {
+				x = projectiles[2] * u;
+				z = (100 - projectiles[4]) * u;
+			}
+			set2Dcolour(red);
+			draw2Dbox(x, screenHeight - z, x + u, screenHeight - z + u);
+			set2Dcolour(green);
+			draw2Dbox(0, starth, size, screenHeight);
+		} else if(displayMap == 2) {
+			set2Dcolour(blue);
+			if(flag == 0) {
+				startw = 0;
+				starth = mid_height - (size / 2);
+			} else {
+				startw = mid_width - (size / 2);
+				starth = 0;
+			}
+			u = size / 100;
+			x = -pos_x[0] * u;
+			z = -pos_z[0] * u;
+			//printf("x %f, z %f, u %d\n", pos_x[0], pos_z[0], u);
+			//printf("x %d, z %d, u %d\n", x, z, u);
+			draw2Dbox(x + startw, z + starth, x + startw + u, z + starth + u);
+			if(projectiles[11] == 1) {
+				x = projectiles[2] * u;
+				z = projectiles[4] * u;
+			}
+			set2Dcolour(red);
+			draw2Dbox(x + startw, z + starth, x + startw + u, z + starth + u);
+			set2Dcolour(green);
+			draw2Dbox(startw, starth, startw + size, starth + size);
+		}
+		free(pos_x);
+		free(pos_y);
+		free(pos_z);
+    }
 
 }
 
@@ -368,7 +431,7 @@ float parse_float(char *message) {
 		if(isspace(c)) {
 			buf[i] = '\0';
 			result = atof(buf);
-			printf("buf %s - result %f\n", buf, result);
+//			printf("buf %s - result %f\n", buf, result);
 			free(buf);
 			return result;
 		} else {
@@ -391,14 +454,14 @@ int parse_int(char *message) {
 	/*  system is running */
 	/* -gravity must also implemented here, duplicate collisionResponse */
 void update() {
-	int i, j, x, y, z;
-	float *pos_x, *pos_y, *pos_z;
+	int i, j, w, x, y, z;
+	float *pos_x, *pos_y, *pos_z, *xaxis, *yaxis, *zaxis;
 	int clouds[WORLDZ];
 	//double time;
-	float func;
+	float func, fx, fy, fz, fr, ax, ay, az;
 	char *message;
 	int recvlen;
-	int flag;
+	int flag, rot, proj;
 
 	/* sample animation for the test world, don't remove this code */
 	/* -demo of animating mobs */
@@ -452,6 +515,13 @@ void update() {
     /* end testworld animation */
 
    	} else {
+   		pos_x = malloc(sizeof(float));
+		pos_y = malloc(sizeof(float));
+		pos_z = malloc(sizeof(float));
+		xaxis = malloc(sizeof(float));
+		yaxis = malloc(sizeof(float));
+		zaxis = malloc(sizeof(float));
+		message = malloc(sizeof(char)*BUFSIZE);
 
 		// Update time
    		gettimeofday(&tv,NULL);
@@ -483,13 +553,21 @@ void update() {
 			
 			// Update sec
    			sec = time_sec;
+   			
+   			if(netClient == 1) {
+   				getViewOrientation(xaxis, yaxis, zaxis);	
+				getViewPosition(pos_x, pos_y, pos_z);
+	   			// Send position to server
+				sprintf(message, "%d %f %f %f %f %f %f ", MOVE, pos_x[0], pos_y[0], pos_z[0], xaxis[0], yaxis[0], zaxis[0]);
+				w = write(my_sockfd, message, strlen(message));
+				if(w < 0) {
+					perror("ERROR - can't write in the socket\n");
+				}
+			}
    		}
    
    		if(netClient == 1) {
-			pos_x = malloc(sizeof(float));
-			pos_y = malloc(sizeof(float));
-			pos_z = malloc(sizeof(float));
-	
+			getViewOrientation(xaxis, yaxis, zaxis);	
 			getViewPosition(pos_x, pos_y, pos_z);
 
 			x = ((int) *pos_x) * (-1);
@@ -506,14 +584,66 @@ void update() {
 				}
 			}
 			
-			free(pos_x);
-			free(pos_y);
-			free(pos_z);
+			// Projectile
+			if(projectiles[11] == 1) {
+				projectiles[2] += projectiles[5];
+				projectiles[4] += projectiles[6];
+				if(projectiles[1] > 0.0) {
+					projectiles[9] += projectiles[8];
+					func = (float) (-(projectiles[9] * projectiles[9])) + projectiles[10];
+					projectiles[3] = func + projectiles[13];
+				} else {
+					// Gravity
+					projectiles[3] -= 1.0;
+				}
+				
+				setMobPosition(0, projectiles[2], projectiles[3], projectiles[4], projectiles[7]);
+				sprintf(message, "%d %d %f %f %f %f ", UPDATEPROJ, 0, projectiles[2], projectiles[3], projectiles[4], projectiles[7]);
+				w = write(my_sockfd, message, strlen(message));
+				if(w < 0) {
+					perror("ERROR - can't write in the socket\n");
+				}
+				
+				x = (int) projectiles[2];
+				y = (int) projectiles[3];
+				z = (int) projectiles[4];
+
+				if((projectiles[2] > 99.0) || (projectiles[2] < 0.0) || (projectiles[4] > 99.0) || (projectiles[4] < 0.0)) {
+					hideMob(0);
+					printf("OUT!\n");
+					projectiles[11] = 0;
+					sprintf(message, "%d %d ", OUT, 0);
+					w = write(my_sockfd, message, strlen(message));
+					if(w < 0) {
+						perror("ERROR - can't write in the socket\n");
+					}
+				} else if (y < 50 && y > 0) {
+					if((world[x][y][z] != 0) && (world[x][y][z] != 5)) {
+						hideMob(0);
+						projectiles[11] = 0;
+						printf("BOOM!\n");
+						boom(x, y, z);
+						sprintf(message, "%d %d %d %d ", BOOM, x, y, z);
+						w = write(my_sockfd, message, strlen(message));
+						if(w < 0) {
+							perror("ERROR - can't write in the socket\n");
+						}
+					}
+				} else if (y < 0) {
+					hideMob(0);
+					printf("OUT!\n");
+					projectiles[11] = 0;
+					sprintf(message, "%d %d ", OUT, 0);
+					w = write(my_sockfd, message, strlen(message));
+					if(w < 0) {
+						perror("ERROR - can't write in the socket\n");
+					}
+				}
+			}
 		}
 		
 		// Update values from client
 		if(netServer == 1) {
-			message = malloc(sizeof(char)*BUFSIZE);
 			recvlen = read(client_sockfd, message, BUFSIZE);
 			if(recvlen < 0) {
 				perror("ERROR - can't read from socket\n");
@@ -525,6 +655,15 @@ void update() {
 				switch(flag) {
 					case PROJECTILE:
 						printf("PROJECTILE\n");
+						++pchar;
+						fx = parse_float(message);
+						++pchar;
+						fy = parse_float(message);
+						++pchar;
+						fz = parse_float(message);
+						++pchar;
+						rot = parse_float(message);
+						launchProjectile(fx, fy, fz, rot);
 						break;
 					case ANGLE:
 						angle = 90;
@@ -538,46 +677,92 @@ void update() {
 						break;
 					case MOVE:
 						printf("MOVE\n");
+						++pchar;
+						fx = parse_float(message);
+						++pchar;
+						fy = parse_float(message);
+						++pchar;
+						fz = parse_float(message);
+						++pchar;
+						ax = parse_float(message);
+						++pchar;
+						ay = parse_float(message);
+						++pchar;
+						az = parse_float(message);
+						setViewPosition(fx, fy, fz);
+						setViewOrientation(-angle, ay, az);
+						break;
+					case UPDATEPROJ:
+						printf("UPDATEPROJ\n");
+						++pchar;
+						proj = parse_int(message);
+						++pchar;
+						fx = parse_float(message);
+						++pchar;
+						fy = parse_float(message);
+						++pchar;
+						fz = parse_float(message);
+						++pchar;
+						fr = parse_float(message);
+						projectiles[2] = fx;
+						projectiles[3] = fy;
+						projectiles[4] = fz;
+						setMobPosition(proj, fx, fy, fz, fr);
+						
+						x = (int) projectiles[2];
+						y = (int) projectiles[3];
+						z = (int) projectiles[4];
+
+						if((projectiles[2] > 99.0) || (projectiles[2] < 0.0) || (projectiles[4] > 99.0) || (projectiles[4] < 0.0)) {
+							hideMob(0);
+							printf("OUT!\n");
+							projectiles[11] = 0;
+						} else if (y < 50 && y > 0) {
+							if((world[x][y][z] != 0) && (world[x][y][z] != 5)) {
+								hideMob(0);
+								projectiles[11] = 0;
+								printf("BOOM!\n");
+								boom(x, y, z);
+							}
+						} else if (y < 0) {
+							hideMob(0);
+							printf("OUT!\n");
+							projectiles[11] = 0;
+						}
+						break;
+					case OUT:
+						printf("OUT\n");
+						++pchar;
+						proj = parse_int(message);
+						hideMob(proj);
+						projectiles[11] = 0;
+						break;
+					case BOOM:
+						printf("BOOM\n");
+						hideMob(0);
+						projectiles[11] = 0;
+						++pchar;
+						x = parse_int(message);
+						++pchar;
+						y = parse_int(message);
+						++pchar;
+						z = parse_int(message);
+						boom(x, y, z);
 						break;
 					default:
-						perror("ERROR - Unknown flag\n");
+						printf("ERROR - Unknown flag\n");
 						break;
 				}
 			}
-			free(message);
 		}
 		
-		// Projectile
-		if(projectiles[11] == 1) {
-			projectiles[2] += projectiles[5];
-			projectiles[4] += projectiles[6];
-			if(projectiles[1] > 0.0) {
-				projectiles[9] += projectiles[8];
-				func = (float) (-(projectiles[9] * projectiles[9])) + projectiles[10];
-				projectiles[3] = func + projectiles[13];
-			} else {
-				// Gravity
-				projectiles[3] -= 1.0;
-			}
-			setMobPosition(0, projectiles[2], projectiles[3], projectiles[4], projectiles[7]);
-
-			x = (int) projectiles[2];
-			y = (int) projectiles[3];
-			z = (int) projectiles[4];
-
-			if((projectiles[2] > 99.0) || (projectiles[2] < 0.0) || (projectiles[4] > 99.0) || (projectiles[4] < 0.0)) {
-				hideMob(0);
-				printf("OUT!\n");
-				projectiles[11] = 0;
-			} else if (y < 50 && y > 0) {
-				if((world[x][y][z] != 0) && (world[x][y][z] != 5)) {
-					hideMob(0);
-					projectiles[11] = 0;
-					printf("BOOM!\n");
-					boom(x, y, z);
-				}
-			}
-		}
+		free(pos_x);
+		free(pos_y);
+		free(pos_z);
+		free(xaxis);
+		free(yaxis);
+		free(zaxis);
+		free(message);
    	}
 }
 
@@ -607,7 +792,7 @@ void mouse(int button, int state, int x, int y) {
 				rot = val % 360;
 				//printf("y: %f, r: %d\n", yaxis[0], rot);	
 				launchProjectile(-pos_x[0], -pos_y[0], -pos_z[0], rot - 90);
-				sprintf(message, "%d %f %f %f %d", PROJECTILE, -pos_x[0], -pos_y[0], -pos_z[0], rot - 90);
+				sprintf(message, "%d %f %f %f %d ", PROJECTILE, -pos_x[0], -pos_y[0], -pos_z[0], rot - 90);
 				w = write(my_sockfd, message, strlen(message));
 				if(w < 0) {
 					perror("ERROR - can't write in the socket\n");
